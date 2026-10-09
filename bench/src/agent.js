@@ -154,7 +154,8 @@ async function playMatch({ base, key, provider, track, scenario, settings }) {
       const round = s.needs === 'shop' ? s.round + 1 : s.round;
       let scores = null;
       if (convRound !== round) {
-        conv = provider.createConversation({ system, tools });
+        conv?.close?.();
+        conv = provider.createConversation({ system, tools, label: `${scenario.id}-r${round}` });
         convRound = round;
         pending = [];
         scores = s.tanks.map((t) => `${t.name} ${t.score}`).join(', ');
@@ -166,6 +167,8 @@ async function playMatch({ base, key, provider, track, scenario, settings }) {
   } catch (err) {
     await api(base, key, 'POST', `/api/matches/${matchId}/resign`).catch(() => {});
     throw err;
+  } finally {
+    conv?.close?.();
   }
 
   const log = (await api(base, null, 'GET', `/api/matches/${matchId}/log?since=0`)).entries;
