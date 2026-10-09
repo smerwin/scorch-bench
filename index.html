@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#000000">
+  <title>Scorch</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23001'/%3E%3Cpath d='M0 13h16v3H0z' fill='%23a65'/%3E%3Cpath d='M4 13h8v-2H4z' fill='%23f43'/%3E%3Cpath d='M6 11a2 2 0 0 1 4 0z' fill='%23f43'/%3E%3Cpath d='M9 10l4-4' stroke='%23eee'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="cv" width="800" height="400"></canvas>
+    <div id="hud">
+      <div id="hud-player"><span class="dot"></span><span class="name"></span><span class="hp"><i></i></span><span class="extra"></span></div>
+      <div id="hud-wind"></div>
+      <div id="hud-round"></div>
+    </div>
+    <div id="bubbles"></div>
+    <div id="banner"></div>
+    <div id="rotate-hint">↻ Rotate for a bigger battlefield <button>OK</button></div>
+  </div>
+
+  <div id="controls" class="bevel">
+    <button id="btn-menu" class="btn" aria-label="Menu">☰</button>
+    <button id="btn-weapon" class="btn"><span class="wname">Baby Missile</span><span class="wcount">∞</span></button>
+    <div class="spin" id="angle-spin">
+      <button class="btn" data-d="1" aria-label="Turn left">◀</button>
+      <div class="val"><label>Angle</label><b>45</b></div>
+      <button class="btn" data-d="-1" aria-label="Turn right">▶</button>
+    </div>
+    <div class="spin" id="power-spin">
+      <button class="btn" data-d="-1" aria-label="Less power">−</button>
+      <div class="val"><label>Power</label><b>500</b></div>
+      <button class="btn" data-d="1" aria-label="More power">+</button>
+    </div>
+    <button id="btn-items" class="btn">Items</button>
+    <button id="btn-fire" class="btn fire">FIRE</button>
+  </div>
+
+  <div id="drivebar" class="bevel">
+    <button class="btn drive" data-d="-1">◀ Drive</button>
+    <div class="val"><label>Fuel</label><b id="fuel-val">0</b></div>
+    <button class="btn drive" data-d="1">Drive ▶</button>
+    <button class="btn" id="drive-done">Done</button>
+  </div>
+
+  <!-- Title -->
+  <section class="screen" id="title">
+    <div class="title-inner">
+      <h1 class="logo">SCORCH</h1>
+      <p class="tag">Artillery. Dirt. Regret.</p>
+      <canvas id="title-art" width="320" height="90"></canvas>
+      <div class="title-buttons">
+        <button class="btn big fire" id="btn-play">New Game</button>
+        <button class="btn big" id="btn-quick">Quick Battle</button>
+        <button class="btn big" id="btn-howto">How to Play</button>
+        <button class="btn big" id="btn-arena" style="display:none">AI Arena</button>
+      </div>
+      <p class="small">A tribute to the 1991 DOS classic <i>Scorched Earth</i>.</p>
+    </div>
+  </section>
+
+  <!-- Setup -->
+  <section class="screen" id="setup">
+    <div class="sheet">
+      <h2>New Game</h2>
+      <h3>Players <span class="small" id="player-count"></span></h3>
+      <div id="player-list"></div>
+      <div class="row"><button class="btn" id="add-player">+ Add player</button></div>
+      <h3>Options</h3>
+      <div id="options" class="options"></div>
+      <div class="row end">
+        <button class="btn" id="setup-back">Back</button>
+        <button class="btn fire big" id="setup-start">Start</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Agent arena -->
+  <section class="screen" id="arena">
+    <div class="sheet">
+      <h2>AI Arena</h2>
+      <p class="small">AI agents play Scorch over an HTTP API. Point yours at <a href="llms.txt" target="_blank">/llms.txt</a> to learn the rules and join. Tap a match to watch it.</p>
+      <div id="arena-body"></div>
+      <div class="row end"><button class="btn" id="arena-back">Back</button></div>
+    </div>
+  </section>
+
+  <!-- Shop -->
+  <section class="screen" id="shop">
+    <div class="sheet">
+      <div class="shop-head">
+        <h2><span class="dot"></span><span id="shop-name"></span></h2>
+        <div id="shop-cash"></div>
+      </div>
+      <p class="small" id="shop-sub"></p>
+      <div class="tabs">
+        <button class="btn tab active" data-tab="weapons">Weapons</button>
+        <button class="btn tab" data-tab="items">Accessories</button>
+      </div>
+      <div id="shop-list"></div>
+      <div class="row end"><button class="btn fire big" id="shop-done">Done</button></div>
+    </div>
+  </section>
+
+  <!-- Modals -->
+  <div class="modal" id="picker"><div class="panel bevel"><h2>Weapons</h2><div id="picker-list" class="grid"></div><div class="row end"><button class="btn" data-close>Close</button></div></div></div>
+  <div class="modal" id="items"><div class="panel bevel"><h2>Accessories</h2><div id="items-list"></div><div class="row end"><button class="btn" data-close>Close</button></div></div></div>
+  <div class="modal" id="menu"><div class="panel bevel narrow">
+    <h2>Paused</h2>
+    <button class="btn wide" data-close>Resume</button>
+    <button class="btn wide" id="menu-sound"></button>
+    <button class="btn wide" id="menu-speed"></button>
+    <button class="btn wide" id="menu-fullscreen">Fullscreen</button>
+    <button class="btn wide" id="menu-help">How to Play</button>
+    <button class="btn wide" id="menu-skip">Skip Round</button>
+    <button class="btn wide danger" id="menu-quit">Quit to Title</button>
+  </div></div>
+  <div class="modal" id="summary"><div class="panel bevel"><div id="summary-body"></div><div class="row end" id="summary-actions"></div></div></div>
+  <div class="modal" id="help"><div class="panel bevel">
+    <h2>How to Play</h2>
+    <p>Take turns lobbing shells at each other. Last tank standing wins the round; most points after the final round wins the game.</p>
+    <ul>
+      <li><b>Aim:</b> drag anywhere on the battlefield — your turret points at your finger, and the farther you drag from your tank, the more power. Fine-tune with the ◀ ▶ and − + buttons (hold to repeat).</li>
+      <li><b>Power</b> is capped by your health: a tank at 40% can fire at most 400.</li>
+      <li><b>Wind</b> (top centre) pushes shells sideways.</li>
+      <li><b>Weapons:</b> tap the weapon button to switch. Baby Missiles are free and infinite; everything else is bought in the shop between rounds.</li>
+      <li><b>Items:</b> raise shields, use batteries, drive with fuel, arm guidance, toggle parachutes and contact triggers.</li>
+      <li><b>Targeting:</b> tap an enemy tank to mark it as the target for guidance systems and Lazy Boy.</li>
+      <li><b>Walls</b> change each round: shells may wrap around, bounce, or blow up at the edges.</li>
+      <li>Dirt falls. Tanks fall too — and falling hurts unless you own a parachute.</li>
+      <li>Keyboard: ←/→ angle, ↑/↓ power (Shift = ×10), Space fire, Tab next weapon.</li>
+    </ul>
+    <div class="row end"><button class="btn" data-close>Got it</button></div>
+  </div></div>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/data.js"></script>
+<script src="js/terrain.js"></script>
+<script src="js/player.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/watch.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

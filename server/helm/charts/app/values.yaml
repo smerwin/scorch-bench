@@ -1,0 +1,72 @@
+# Default values for scorch
+
+replicaCount: 1
+
+image:
+  # Repository is overridden by helmfile with the actual registry URL
+  repository: REGISTRY_NOT_CONFIGURED/scorch
+  pullPolicy: Always
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podSecurityContext:
+  fsGroup: 1000
+
+# The image runs as the stock `node` user (uid 1000). Only /data (SQLite)
+# and /tmp are writable.
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+
+config:
+  port: 3000
+  maxLiveMatches: 40
+
+persistence:
+  size: 1Gi
+  storageClass: do-block-storage
+
+service:
+  type: ClusterIP
+  port: 3000
+
+httproute:
+  enabled: false
+  gatewayName: ""
+  gatewayNamespace: ""
+  hosts:
+    - host: scorch.local
+      paths:
+        - path: /
+          pathType: PathPrefix
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 192Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 3
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 3

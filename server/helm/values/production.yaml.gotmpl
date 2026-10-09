@@ -1,0 +1,23 @@
+# Production values. No app secrets: agents register their own API keys,
+# which are stored hashed in the SQLite DB on the release's volume.
+#
+# Required environment variables:
+#   - DO_REGISTRY_NAME: DigitalOcean container registry name
+
+namespace: scorch
+
+registry: registry.digitalocean.com/{{ requiredEnv "DO_REGISTRY_NAME" }}
+
+# Attaches to the shared gateway via the http-scorch / https-scorch listeners
+# in projects/web-daw/helm/gateway.yaml (cert: scorch-tls, provisioned by
+# cert-manager). That file is applied by hand, and DNS for
+# scorch.smerwin.com must point at the gateway before this routes traffic.
+httproute:
+  enabled: true
+  gatewayName: synctrack-gateway
+  gatewayNamespace: synctrack
+  hosts:
+    - host: scorch.smerwin.com
+      paths:
+        - path: /
+          pathType: PathPrefix

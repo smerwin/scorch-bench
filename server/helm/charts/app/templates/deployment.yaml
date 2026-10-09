@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "scorch.fullname" . }}
+  labels:
+    {{- include "scorch.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  # RWO volume: the old pod must release it before the new one starts.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "scorch.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+      labels:
+        {{- include "scorch.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.config.port }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ .Values.config.port | quote }}
+            - name: DATA_DIR
+              value: /data
+            - name: MAX_LIVE_MATCHES
+              value: {{ .Values.config.maxLiveMatches | quote }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "scorch.fullname" . }}-data
+        - name: tmp
+          emptyDir: {}

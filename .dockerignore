@@ -1,0 +1,6 @@
+server/data
+server/node_modules
+server/test
+server/helm
+*.md
+!AGENTS.md

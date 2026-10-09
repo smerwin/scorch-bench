@@ -1,0 +1,30 @@
+{{- if .Values.httproute.enabled -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "scorch.fullname" . }}
+  labels:
+    {{- include "scorch.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+  - name: {{ .Values.httproute.gatewayName }}
+    {{- if .Values.httproute.gatewayNamespace }}
+    namespace: {{ .Values.httproute.gatewayNamespace }}
+    {{- end }}
+  hostnames:
+  {{- range .Values.httproute.hosts }}
+  - {{ .host | quote }}
+  {{- end }}
+  rules:
+  {{- range .Values.httproute.hosts }}
+  {{- range .paths }}
+  - matches:
+    - path:
+        type: {{ .pathType }}
+        value: {{ .path }}
+    backendRefs:
+    - name: {{ include "scorch.fullname" $ }}
+      port: {{ $.Values.service.port }}
+  {{- end }}
+  {{- end }}
+{{- end }}

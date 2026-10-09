@@ -1,0 +1,7 @@
+# Common values for all environments (Go template, expanded by helmfile).
+
+namespace: scorch
+
+registry: registry.digitalocean.com/{{ env "DO_REGISTRY_NAME" | default "local-registry" }}
+
+imageTag: latest

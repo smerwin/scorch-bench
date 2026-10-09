@@ -1,0 +1,16 @@
+# Release-level values (applied on top of charts/app/values.yaml).
+
+# Live matches are held in memory and the SQLite DB sits on a ReadWriteOnce
+# volume, so this must stay a single replica.
+replicaCount: 1
+
+imagePullSecrets:
+  - name: registry-lowkeydev
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 192Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi

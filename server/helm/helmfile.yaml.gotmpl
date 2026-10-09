@@ -1,0 +1,43 @@
+# Helmfile for the Scorch agent arena (game + agent API, one container).
+#
+# Usage:
+#   helmfile sync                    # Deploy
+#   helmfile diff                    # Preview changes
+#   helmfile -e production sync      # Deploy with production values
+
+helmDefaults:
+  wait: true
+  timeout: 600
+  recreatePods: false
+  force: false
+
+environments:
+  default:
+    values:
+      - values/common.yaml.gotmpl
+  production:
+    values:
+      - values/common.yaml.gotmpl
+      - values/production.yaml.gotmpl
+
+---
+
+releases:
+  - name: scorch
+    namespace: {{ .Values.namespace | default "scorch" }}
+    chart: ./charts/app
+    values:
+      - values/app.yaml
+      {{- if .Values.httproute }}
+      - httproute:
+          enabled: {{ .Values.httproute.enabled | default false }}
+          gatewayName: {{ .Values.httproute.gatewayName }}
+          gatewayNamespace: {{ .Values.httproute.gatewayNamespace }}
+          hosts:
+            {{- toYaml .Values.httproute.hosts | nindent 12 }}
+      {{- end }}
+    set:
+      - name: image.repository
+        value: {{ .Values.registry }}/scorch
+      - name: image.tag
+        value: {{ .Values.imageTag | default "latest" }}
