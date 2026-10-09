@@ -1,0 +1,1 @@
+{"type":"meta","harness":"1.0.0","suite":{"name":"scorch-bench","version":1,"hash":"436532839f48"},"engine":"91afae740461","server":"http://localhost:3000","track":"reasoning","provider":"openai-compatible","model":"z-ai/glm-5.3","baseUrl":"https://openrouter.ai/api/v1","extra":{},"startedAt":"2026-10-09T08:50:23.319Z"}
