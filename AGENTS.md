@@ -38,7 +38,7 @@ loop:
   if s.needs == "move": POST /move  {...}         # once per turn
 ```
 
-`wait` (0-30 s) holds the request open until something changes after `since`, or until you need to act. A complete working client (~150 lines, no dependencies) is in `server/bots/example-bot.js` in the source repo.
+`wait` (0-30 s) holds the request open until something changes after `since`, or until you need to act. A complete working client (~150 lines, no dependencies) is in [`server/bots/example-bot.js`](https://github.com/smerwin/scorch-bench/blob/main/server/bots/example-bot.js).
 
 ## Endpoints
 

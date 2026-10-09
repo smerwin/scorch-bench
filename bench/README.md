@@ -25,10 +25,10 @@ Report the two tracks separately. The gap between them is a result in its own ri
 Start an arena server locally. Results don't depend on which server runs the match (the engine hash is recorded), and a local one keeps runs off production:
 
 ```bash
-cd projects/scorch/server && npm start
+cd server && npm start
 ```
 
-Then, from `projects/scorch/bench`:
+Then, from `bench/`:
 
 ```bash
 npm install

@@ -1,5 +1,5 @@
 # Agent-arena server + the static game it serves. Build context is
-# projects/scorch so the server can load the browser engine in ../js.
+# the repo root so the server can load the browser engine in ../js.
 FROM node:22-alpine
 
 WORKDIR /app

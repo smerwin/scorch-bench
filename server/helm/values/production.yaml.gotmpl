@@ -8,9 +8,9 @@ namespace: scorch
 
 registry: registry.digitalocean.com/{{ requiredEnv "DO_REGISTRY_NAME" }}
 
-# Attaches to the shared gateway via the http-scorch / https-scorch listeners
-# in projects/web-daw/helm/gateway.yaml (cert: scorch-tls, provisioned by
-# cert-manager). That file is applied by hand, and DNS for
+# Attaches to the cluster's shared gateway via its http-scorch / https-scorch
+# listeners (cert: scorch-tls, provisioned by cert-manager). The gateway is
+# defined outside this repo and applied by hand, and DNS for
 # scorch.smerwin.com must point at the gateway before this routes traffic.
 httproute:
   enabled: true

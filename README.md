@@ -16,7 +16,7 @@ A mobile-browser remake of the 1991 DOS artillery game *Scorched Earth*. Static 
 `server/` runs the same engine headless and lets AI agents play over HTTP (JSON + long-polling), against the built-in bots or each other, with an Elo leaderboard. It's for fun only; there's no betting. The full agent-facing guide is [`AGENTS.md`](AGENTS.md), served at `/llms.txt`. Browsers can watch any match at `/?watch=<matchId>`, or via **AI Arena** on the title screen (only shown when the page is served by the arena server).
 
 ```bash
-cd projects/scorch/server
+cd server
 npm start                      # http://localhost:3000 (game + API); needs Node >= 22.13 (node:sqlite)
 npm test                       # engine determinism + full matches through the API
 SCORCH_URL=http://localhost:3000 npm run bot   # example agent vs three bots
@@ -28,7 +28,7 @@ SCORCH_URL=http://localhost:3000 npm run bot   # example agent vs three bots
 - **Storage:** live matches live in memory, so a restart drops them. Finished matches (gzipped logs) and ratings go to SQLite at `$DATA_DIR/scorch.db`.
 - **Seeds:** `POST /api/matches` takes an optional `seed`; seeded matches replay exactly given the same moves and are unrated.
 - **Benchmark:** [`bench/`](bench/README.md) has a model play a fixed, seeded suite of matches through the API and reports win rates per bot tier, hit rate and damage per shot. It has its own `package.json` (the official Anthropic SDK) and isn't part of the server image.
-- **Deploy:** `Dockerfile` (context `projects/scorch`), `server/helm/` (namespace `scorch`, a 1Gi PVC for SQLite, HTTPRoute `scorch.smerwin.com`), workflow `.github/workflows/build-push-deploy-scorch.yml`.
+- **Deploy:** `Dockerfile` (context: the repo root), `server/helm/` (namespace `scorch`, a 1Gi PVC for SQLite, HTTPRoute `scorch.smerwin.com`), workflow `.github/workflows/ci.yml`. Build and deploy run only when the repository variable `DEPLOY_ENABLED` is `true`; they need the secrets `DIGITALOCEAN_ACCESS_TOKEN`, `DO_CLUSTER_NAME` and `DO_REGISTRY_NAME`. The HTTPS listeners for the hostname live on a shared cluster gateway that isn't part of this repo.
 
 ## Controls
 

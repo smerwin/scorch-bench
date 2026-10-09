@@ -1,0 +1,160 @@
+name: "Scorch: Test, Build, Push, and Deploy"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      skip_deploy:
+        description: 'Skip deployment (build only)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: registry.digitalocean.com
+  REGISTRY_NAME: ${{ secrets.DO_REGISTRY_NAME }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Engine determinism + full agent-vs-bot matches through the HTTP API.
+      - name: Run server tests
+        working-directory: ./server
+        run: npm test
+
+      # The benchmark's code sandbox relies on Node >= 25 network permissions.
+      - name: Set up Node for the benchmark harness
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
+      - name: Run benchmark harness tests
+        working-directory: ./bench
+        run: |
+          npm ci
+          npm test
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: test
+    # Off until the DigitalOcean secrets are set on this repo.
+    if: github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
+    outputs:
+      short_sha: ${{ steps.tag.outputs.short_sha }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        run: echo "short_sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log in to DigitalOcean Container Registry
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Context is the repo root (not server/) so the image gets the
+      # browser engine in js/, which the server runs headless.
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/scorch:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/scorch:${{ steps.tag.outputs.short_sha }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAME }}/scorch:latest
+          cache-from: type=gha,scope=scorch
+          cache-to: type=gha,mode=max,scope=scorch
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: ${{ !inputs.skip_deploy }}
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Save DigitalOcean kubeconfig
+        run: doctl kubernetes cluster kubeconfig save ${{ secrets.DO_CLUSTER_NAME }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5
+        with:
+          version: 'v3.13.0'
+
+      - name: Install Helmfile
+        run: |
+          curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/v1.2.3/helmfile_1.2.3_linux_amd64.tar.gz
+          tar -xzf helmfile.tar.gz
+          sudo mv helmfile /usr/local/bin/
+          helmfile version
+
+      - name: Install Helm plugins
+        run: helm plugin install https://github.com/databus23/helm-diff --version v3.9.4
+
+      - name: Create namespace if not exists
+        run: kubectl create namespace scorch --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create image pull secret
+        run: |
+          doctl registry kubernetes-manifest | sed 's/namespace: kube-system/namespace: scorch/' | kubectl apply -f -
+
+      # NOTE: routing needs the http-scorch / https-scorch listeners on the
+      # cluster's shared gateway (defined and applied outside this repo) and
+      # DNS for scorch.smerwin.com pointed at the gateway's LoadBalancer.
+
+      - name: Helmfile diff
+        working-directory: ./server/helm
+        env:
+          DO_REGISTRY_NAME: ${{ secrets.DO_REGISTRY_NAME }}
+        run: |
+          helmfile -f helmfile.yaml.gotmpl -e production diff \
+            --state-values-set imageTag=${{ needs.build-and-push.outputs.short_sha }} || true
+
+      - name: Helmfile sync
+        working-directory: ./server/helm
+        env:
+          DO_REGISTRY_NAME: ${{ secrets.DO_REGISTRY_NAME }}
+        run: |
+          helmfile -f helmfile.yaml.gotmpl -e production sync \
+            --state-values-set imageTag=${{ needs.build-and-push.outputs.short_sha }}
+
+      - name: Verify deployment
+        run: kubectl rollout status deployment/scorch -n scorch --timeout=300s
+
+      - name: Deployment summary
+        run: |
+          echo "## scorch deployed" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag:** \`${{ needs.build-and-push.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          kubectl get pods,svc,pvc -n scorch >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
