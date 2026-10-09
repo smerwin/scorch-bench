@@ -128,13 +128,12 @@ async function decide({ base, key, matchId, conv, state, track, pending, scores 
   return { rec, pending: parts.toolResults };
 }
 
-async function playMatch({ base, key, provider, track, scenario, settings }) {
-  const system = systemPrompt(track);
+// Play one seat of a match that already exists, until it ends. Several seats
+// of one match can be played at once, each by its own provider.
+async function playSeat({ base, key, provider, track, matchId, seat, opponents }) {
+  const system = systemPrompt(track, opponents);
   const tools = toolsFor(track);
   const startedAt = new Date().toISOString();
-  const created = await api(base, key, 'POST', '/api/matches', { bots: scenario.bots, seed: scenario.seed, settings });
-  const matchId = created.match;
-  const seat = created.seat;
   const decisions = [];
   let conv = null;
   let convRound = null;
@@ -174,12 +173,8 @@ async function playMatch({ base, key, provider, track, scenario, settings }) {
   const usage = {};
   for (const d of decisions) addUsage(usage, d.usage);
   return {
-    type: 'match',
-    scenario: scenario.id,
-    kind: scenario.kind,
-    bots: scenario.bots,
-    seed: scenario.seed,
     match: matchId,
+    seat,
     status: final.status,
     startedAt,
     finishedAt: new Date().toISOString(),
@@ -206,4 +201,12 @@ async function playMatch({ base, key, provider, track, scenario, settings }) {
   };
 }
 
-module.exports = { playMatch, api, ApiError, MAX_STEPS };
+// One model against the suite's bots.
+async function playMatch({ base, key, provider, track, scenario, settings }) {
+  const created = await api(base, key, 'POST', '/api/matches', { bots: scenario.bots, seed: scenario.seed, settings });
+  const r = await playSeat({ base, key, provider, track, matchId: created.match, seat: created.seat, opponents: 'bots' });
+  const { match, seat, ...rest } = r;
+  return { type: 'match', scenario: scenario.id, kind: scenario.kind, bots: scenario.bots, seed: scenario.seed, match, ...rest };
+}
+
+module.exports = { playMatch, playSeat, api, ApiError, MAX_STEPS };

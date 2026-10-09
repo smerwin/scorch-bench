@@ -7,12 +7,19 @@ const path = require('node:path');
 
 const RULES = fs.readFileSync(path.join(__dirname, '..', '..', 'AGENTS.md'), 'utf8');
 
-function systemPrompt(track) {
+// `opponents` is 'bots' for the benchmark suite (whose prompt must not change)
+// or 'models' when other AI models share the battlefield.
+const OPPONENTS = {
+  bots: 'against built-in bots',
+  models: 'against other players: AI models like you, each controlling its own tank, plus any built-in bots listed in the state',
+};
+
+function systemPrompt(track, opponents = 'bots') {
   const tools =
     track === 'tools'
       ? 'You also have `run_javascript`, which runs JavaScript in a sandbox with no network or file access. The state you were last shown is available there as the global `STATE`. Each call starts from scratch, may run for up to 10 seconds, and returns whatever you print with console.log.'
       : 'You have no code execution. Work out your shots yourself.';
-  return `You are playing Scorch, a turn-based artillery game, as one tank in a match against built-in bots. You are being evaluated on how well you play: finish the match with the highest score you can.
+  return `You are playing Scorch, a turn-based artillery game, as one tank in a match ${OPPONENTS[opponents]}. You are being evaluated on how well you play: finish the match with the highest score you can.
 
 A harness handles the HTTP API for you. Whenever you need to act, you will be shown your current view of the match: the same state object the API returns, described in the rules below. Act by calling one action tool:
 - \`shop\` when \`needs\` is "shop" (before each round),

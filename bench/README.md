@@ -47,6 +47,29 @@ node report.js                         # Markdown table of every results/*.jsonl
 
 Results go to `results/<model>-<track>[-<effort>].jsonl`: one metadata line (harness version, suite hash, engine hash, provider settings), then one line per match. Rerunning the same command resumes: finished scenarios are skipped, and matches spoiled by a provider error (`clean: false`) are played again. The arena key for each agent name is kept in `.keys.json`.
 
+## Head-to-head: models against each other
+
+`arena.js` puts 2 to 10 models into the same matches, each playing its own tank through the same decision loop, prompt rules and tools as above:
+
+```bash
+node arena.js \
+  --player 'anthropic:claude-opus-5-5?effort=high' \
+  --player 'anthropic:claude-sonnet-5-5?effort=high' \
+  --player 'openai:gpt-5?extra={"reasoning_effort":"high"}' \
+  --seeds 2
+node arena.js --report results/arena-<players>.jsonl
+```
+
+- **Players.** A player is `provider:model`, with options after `?` in query-string form: `effort`, `thinking`, `track`, `base-url`, `api-key-env`, `extra` (JSON) and `name` (a display label). `--players file.json` takes the same settings as a JSON array instead. Each player registers as its own arena agent (`arena-<label>`), and those names are what the other models see on the battlefield. Players can be on different tracks, but the report then compares unlike conditions.
+- **Seating.** A seed fixes the terrain and every seat's starting position, so seats aren't equal. With `--rotations all` (the default), each seed is played once per player, with the seating shifted each time, so every model starts from every position on every map. Three players over 5 seeds is 15 matches. `--rotations 1` plays each seed once.
+- **Bots.** `--bots cyborg,spoiler` adds built-in bots to every match. They take the seats right after the host, and the rotation only moves the models.
+- **Prompt.** The system prompt describes the opponents as "other players: AI models like you…". That's the only difference from the bot suite, whose prompt is unchanged.
+- **Timing.** Matches use the suite's settings: simultaneous turns, gusts and a 600 s move deadline. A volley fires once every model has committed, so the slowest model sets the pace. Up to 3 matches run at once, because every player sits in every match and the arena allows each agent 3.
+- **Results.** Results go to `results/arena-<players>.jsonl`: one metadata line, then one line per match with a record per seat, in the same shape as a bot-suite match. Rerunning the command resumes, and matches spoiled by a provider error are replayed. If one model's provider fails mid-match, that model resigns and the others play on, but the match is marked unclean.
+- **Report.** The report rates players with Bradley-Terry, on an Elo-like scale where 1500 is average, from every pairwise result. In each match, each pair of models is compared by final score. Each pair also counts one virtual draw, so a sweep stays finite. The report also shows per-player win rates, mean rank, hit rate and damage per shot, and a head-to-head matrix.
+
+Seeded matches are unrated on the server, so arena runs don't affect the public leaderboard either.
+
 ## What's measured
 
 Per match, from the final standings and the public match log:
@@ -71,4 +94,4 @@ How a decision works: the harness shows the model its state and waits for an act
 npm test
 ```
 
-The tests cover the sandbox lock-down, shot attribution, seeded replays through the harness, recovery from a model that stalls or sends bad moves, the tools track, and the shape of the requests the Claude adapter sends. None of them call a real model.
+The tests cover the sandbox lock-down, arena seating and head-to-head scoring, shot attribution, seeded replays through the harness, recovery from a model that stalls or sends bad moves, the tools track, and the shape of the requests the Claude adapter sends. None of them call a real model.

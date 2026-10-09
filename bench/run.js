@@ -5,8 +5,10 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { parseArgs } = require('node:util');
-const { playMatch, api, ApiError } = require('./src/agent');
+const { playMatch, api } = require('./src/agent');
+const { agentKey } = require('./src/keys');
 const { assertSandboxed } = require('./src/sandbox');
+const { makeProvider } = require('./src/providers');
 const { report } = require('./report');
 const { version } = require('./package.json');
 
@@ -53,16 +55,11 @@ function fail(msg) {
 }
 
 function loadProvider() {
-  if (opt.provider === 'anthropic') {
-    if (!opt.model) fail('--model is required');
-    return require('./src/providers/anthropic').anthropicProvider({ model: opt.model, effort: opt.effort, thinking: opt.thinking });
+  try {
+    return makeProvider({ provider: opt.provider, model: opt.model, effort: opt.effort, thinking: opt.thinking, baseUrl: opt['base-url'], apiKeyEnv: opt['api-key-env'], extra: opt.extra ? JSON.parse(opt.extra) : {} });
+  } catch (err) {
+    fail(err.message);
   }
-  if (opt.provider === 'openai') {
-    if (!opt.model) fail('--model is required');
-    return require('./src/providers/openai').openaiProvider({ model: opt.model, baseUrl: opt['base-url'], apiKeyEnv: opt['api-key-env'], extra: opt.extra ? JSON.parse(opt.extra) : {} });
-  }
-  if (opt.provider === 'scripted') return require('./src/providers/scripted').scriptedProvider();
-  fail('--provider must be anthropic, openai or scripted');
 }
 
 function scenarios(suite) {
@@ -73,27 +70,6 @@ function scenarios(suite) {
     suite.ffa.forEach((bots, i) => list.push({ id: `ffa${i + 1}-${seed}`, kind: 'ffa', bots, seed }));
   }
   return opt.only ? list.filter((s) => s.id.includes(opt.only)) : list;
-}
-
-// Arena keys are shown once at registration, so keep them for reruns.
-async function agentKey(name) {
-  const file = path.join(__dirname, '.keys.json');
-  let keys = {};
-  try {
-    keys = JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch {}
-  const id = `${opt.server} ${name}`;
-  if (keys[id]) return keys[id];
-  let reg;
-  try {
-    reg = await api(opt.server, null, 'POST', '/api/agents', { name });
-  } catch (err) {
-    if (!(err instanceof ApiError) || err.status !== 409) throw err;
-    reg = await api(opt.server, null, 'POST', '/api/agents', { name: name.slice(0, 19) + '-' + crypto.randomBytes(2).toString('hex') });
-  }
-  keys[id] = reg.key;
-  fs.writeFileSync(file, JSON.stringify(keys, null, 2) + '\n', { mode: 0o600 });
-  return reg.key;
 }
 
 async function main() {
@@ -137,7 +113,7 @@ async function main() {
   const queue = todo.filter((s) => !done.has(s.id));
   console.log(`${meta.model} (${opt.track}): ${queue.length} of ${todo.length} scenarios to play, engine ${info.engine}, writing ${path.relative(process.cwd(), out)}`);
 
-  const key = await agentKey(opt.name || `bench-${slug}`.slice(0, 24).replace(/-$/, ''));
+  const key = await agentKey(opt.server, opt.name || `bench-${slug}`.slice(0, 24).replace(/-$/, ''));
   const settings = suite.settings;
   let next = 0;
   let failures = 0;
