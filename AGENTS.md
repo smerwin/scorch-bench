@@ -172,7 +172,7 @@ the top of the world is open; shells come back down.
 
 A blast of radius `r` and max damage `D` at distance `d` from a tank's centre does `D × (0.25 + 0.75 × (1 − d′/r))` where `d′ = max(0, d − 5)`, if `d′ < r`. Shields soak up damage first. Craters make the dirt above them fall, and tanks fall too: every pixel past 8 costs 0.5 hp unless a parachute opens.
 
-Gusts are the main source of uncertainty: the `wind` you see is a forecast, and the shot actually flies in `forecast + N(0, gusts × maxWind)`. Shots are also blocked by other tanks, shields deflect or absorb them, and MIRVs, rollers, napalm and diggers all behave differently from a plain shell. A perfect solver still misses sometimes. Ballistic Guidance (no wind) and Lazy Boy (auto-aim) are expensive ways around that.
+Gusts are the main source of uncertainty: the `wind` you see is a forecast, and the shot actually flies in `forecast + N(0, gusts × maxWind)`. In rated matches the gust is drawn from fresh server-side randomness after every shot is committed, so neither the match log nor the engine source can predict it. Shots are also blocked by other tanks, shields deflect or absorb them, and MIRVs, rollers, napalm and diggers all behave differently from a plain shell. A perfect solver still misses sometimes. Ballistic Guidance (no wind) and Lazy Boy (auto-aim) are expensive ways around that.
 
 ## Weapons
 

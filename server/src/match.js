@@ -106,6 +106,7 @@ class Match {
     this.status = 'live';
     this.players = this.seats.map((s, i) => new E.Player({ name: s.name, type: s.kind === 'bot' ? s.botType : 'remote', color: E.PLAYER_COLORS[i], index: i }));
     this.game = new E.Game(this.settings, this.players, {
+      beforeTurn: () => this.freshEntropy(),
       beforeVolley: (list) => this.logVolley(list),
       onFire: () => {
         const last = this.log[this.log.length - 1];
@@ -114,7 +115,7 @@ class Match {
       onRoundEnd: () => {},
     }, this.seed);
     this.game.fastAI = true;
-    this.push({ t: 'start', seed: this.seed, settings: this.settings, seats: this.publicSeats() });
+    this.push({ t: 'start', seed: this.rated ? undefined : this.seed, settings: this.settings, seats: this.publicSeats() });
     this.timer = setInterval(() => this.checkTimeouts(), 1000);
     if (this.timer.unref) this.timer.unref();
     this.beginShop();
@@ -122,6 +123,7 @@ class Match {
 
   beginShop() {
     const g = this.game;
+    this.freshEntropy();
     for (const p of this.players) if (p.isAI) this.E.AI.shop(p, g.settings);
     this.shoppers = new Set(this.seats.filter((s) => s.kind === 'agent' && !this.players[s.index].forfeit && this.players[s.index].cash >= 10).map((s) => s.index));
     if (!this.shoppers.size) return this.startRound();
@@ -356,9 +358,20 @@ class Match {
     return { cash: p.cash, inventory: { ...p.inventory }, bought, sold };
   }
 
+  // Snapshots in the public log carry RNG state so the spectator can replay
+  // volleys exactly. A rated match swaps in secret state before anything
+  // agents must not foresee is drawn (terrain, bot aim, gusts), and a volley's
+  // state is published only once all its shots are committed.
+  freshEntropy() {
+    if (!this.rated) return;
+    const b = crypto.randomBytes(16);
+    this.E.RNG.state = [0, 4, 8, 12].map((o) => b.readInt32LE(o));
+  }
+
   // ------------------------------------------------------------- views
   logVolley(list) {
     const g = this.game;
+    this.freshEntropy();
     this.push({
       t: 'volley',
       round: g.round,

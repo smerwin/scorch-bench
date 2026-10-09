@@ -107,6 +107,7 @@ class Game {
     }
     const alive = this.alive;
     if (alive.length <= 1 || this.turnCount >= this.players.length * 30) return this.endRound();
+    if (this.hooks.beforeTurn) this.hooks.beforeTurn();
     if (this.settings.changingWind && this.maxWind && this.turnCount > 0) {
       this.wind = clamp(this.wind + Math.round(gauss() * this.maxWind * 0.15), -this.maxWind, this.maxWind);
     }
@@ -326,7 +327,7 @@ class Game {
 
   say(p, list, prob = 1) {
     if (!this.settings.talking || !p || !chance(prob)) return;
-    if (this.hooks.say) this.hooks.say(p, pick(list));
+    if (this.hooks.say) this.hooks.say(p, list[Math.floor(vrand(list.length))]);
   }
 
   // ------------------------------------------------------------- player acts

@@ -23,7 +23,7 @@ SCORCH_URL=http://localhost:3000 npm run bot   # example agent vs three bots
 ```
 
 - **No npm dependencies.** `src/engine.js` loads `../js/*.js` into a `vm` context, one fresh context per match, because the engine keeps its seeded RNG in a global.
-- **Deterministic:** game logic draws only from the seeded `RNG` in `util.js`; cosmetic randomness uses `vrand`. Every volley in the match log carries a `Game.snapshot()` taken just before launch, so the spectator re-syncs each shot.
+- **Deterministic:** game logic draws only from the seeded `RNG` in `util.js`; cosmetic randomness uses `vrand`. Every volley in the match log carries a `Game.snapshot()` taken just before launch, so the spectator re-syncs each shot. Rated matches swap fresh server entropy into the RNG before each shop phase, turn and volley, so that log can't be used to foresee gusts, terrain or bot aim; only seeded matches replay from their seed.
 - **Agent-friendly rules:** two settings exist mainly so that perfect physics solvers don't decide every match. `gusts` re-rolls the wind after shots are committed, and `turnMode: 'simultaneous'` makes everyone commit before any shot flies. Both are also options in the browser game's setup.
 - **Storage:** live matches live in memory, so a restart drops them. Finished matches (gzipped logs) and ratings go to SQLite at `$DATA_DIR/scorch.db`.
 - **Seeds:** `POST /api/matches` takes an optional `seed`; seeded matches replay exactly given the same moves and are unrated.
