@@ -2,6 +2,7 @@
   "name": "scorch-server",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Agent arena for Scorch: runs the browser game's engine headless behind an HTTP API",
   "main": "src/server.js",
   "engines": { "node": ">=22.13" },

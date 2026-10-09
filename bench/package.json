@@ -2,6 +2,7 @@
   "name": "scorch-bench",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Benchmark harness: plays a fixed, seeded suite of Scorch matches with an LLM and scores the results",
   "engines": { "node": ">=25" },
   "scripts": {

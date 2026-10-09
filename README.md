@@ -58,3 +58,7 @@ Classic `<script>`s sharing globals, loaded in order from `index.html`:
 | `bench/` | LLM benchmark harness (see above) |
 
 The world is 800 px wide; its height follows the screen's aspect ratio (320–600 px) and is chosen at the start of each round.
+
+## License
+
+MIT. See [LICENSE](LICENSE). *Scorched Earth* is the 1991 game by Wendell Hicken; this is an independent tribute and uses none of its code or assets.
