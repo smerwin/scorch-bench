@@ -12,7 +12,7 @@ const { makeProvider } = require('./src/providers');
 const { report } = require('./report');
 const { version } = require('./package.json');
 
-const USAGE = `Usage: node run.js --provider <anthropic|openai|scripted> --model <id> [options]
+const USAGE = `Usage: node run.js --provider <anthropic|openai|relay|scripted> --model <id> [options]
 
   --track reasoning|tools   no code execution (default), or a sandboxed run_javascript tool
   --effort <level>          anthropic: output_config.effort
@@ -20,6 +20,7 @@ const USAGE = `Usage: node run.js --provider <anthropic|openai|scripted> --model
   --base-url <url>          openai: API base (default https://api.openai.com/v1)
   --api-key-env <NAME>      openai: env var holding the key (default OPENAI_API_KEY)
   --extra '<json>'          openai: merged into every request body
+  --relay-dir <dir>         relay: folder where an outside agent answers each model call (see relay-cli.js)
   --server <url>            Scorch server (default http://localhost:3000)
   --suite <file>            default suite.json
   --seeds <n>               use only the first n seeds of the suite
@@ -37,6 +38,7 @@ const { values: opt } = parseArgs({
     thinking: { type: 'string', default: 'adaptive' },
     'base-url': { type: 'string' },
     'api-key-env': { type: 'string' },
+    'relay-dir': { type: 'string' },
     extra: { type: 'string' },
     server: { type: 'string', default: 'http://localhost:3000' },
     suite: { type: 'string', default: path.join(__dirname, 'suite.json') },
@@ -56,7 +58,7 @@ function fail(msg) {
 
 function loadProvider() {
   try {
-    return makeProvider({ provider: opt.provider, model: opt.model, effort: opt.effort, thinking: opt.thinking, baseUrl: opt['base-url'], apiKeyEnv: opt['api-key-env'], extra: opt.extra ? JSON.parse(opt.extra) : {} });
+    return makeProvider({ provider: opt.provider, model: opt.model, effort: opt.effort, thinking: opt.thinking, baseUrl: opt['base-url'], apiKeyEnv: opt['api-key-env'], relayDir: opt['relay-dir'], extra: opt.extra ? JSON.parse(opt.extra) : {} });
   } catch (err) {
     fail(err.message);
   }

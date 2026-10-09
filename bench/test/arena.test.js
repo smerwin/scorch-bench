@@ -67,7 +67,8 @@ test('two models share seeded matches, swap seats, and get a head-to-head report
     const make = (c) => (c.provider === 'test' ? passer : makeProvider(c));
     const out = path.join(dir, 'arena.jsonl');
     const suite = { ...SUITE, settings: SETTINGS };
-    const args = { server: base, configs: [{ provider: 'scripted' }, { provider: 'test' }], suite, suiteText, seeds: [17], rotations: 'all', out, log: () => {}, makeProvider: make };
+    const keysFile = path.join(dir, 'keys.json');
+    const args = { server: base, configs: [{ provider: 'scripted' }, { provider: 'test' }], suite, suiteText, seeds: [17], rotations: 'all', out, log: () => {}, makeProvider: make, keysFile };
     const r = await runArena(args);
     assert.strictEqual(r.failures, 0);
 
@@ -85,8 +86,14 @@ test('two models share seeded matches, swap seats, and get a head-to-head report
     const rating = (name) => Number(report.split('\n').find((l) => l.startsWith(`| ${name} |`)).split('|')[3]);
     assert.ok(rating('naive-ballistic') > rating('passer'), report);
 
-    // Rerunning resumes: nothing left to play.
+    // A match left live by a killed run would hold the player's seats; the
+    // rerun resigns it, then resumes with nothing left to play.
+    const key = Object.values(JSON.parse(fs.readFileSync(keysFile, 'utf8')))[0];
+    const stale = await (await fetch(base + '/api/matches', { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: JSON.stringify({ bots: ['moron'], settings: SETTINGS }) })).json();
+    assert.strictEqual(stale.status, 'live');
     await runArena(args);
     assert.strictEqual(fs.readFileSync(out, 'utf8').trim().split('\n').length, lines.length);
+    const live = await (await fetch(base + '/api/matches?status=live')).json();
+    assert.ok(!live.matches.some((m) => m.id === stale.match));
   });
 });

@@ -101,7 +101,24 @@ async function playArenaMatch({ server, players, scenario, bots, settings }) {
   };
 }
 
-async function runArena({ server, configs, suite, suiteText, seeds, bots = [], rotations = 'all', concurrency = 3, out, log = console.log, makeProvider }) {
+// A killed run leaves its matches live, and they hold every player's seats
+// against the arena's 3-active-matches-per-agent cap until they time out.
+// Their results were never recorded, so resign them before starting.
+async function resignLeftovers({ server, players, names, log }) {
+  const live = (await api(server, null, 'GET', '/api/matches?status=live')).matches;
+  for (const m of live) {
+    const seated = new Set(m.seats.map((s) => s.name));
+    for (let i = 0; i < players.length; i++) {
+      if (!seated.has(names[i])) continue;
+      try {
+        await api(server, players[i].key, 'POST', `/api/matches/${m.id}/resign`);
+        log(`resigned leftover match ${m.id} for ${players[i].label}`);
+      } catch {}
+    }
+  }
+}
+
+async function runArena({ server, configs, suite, suiteText, seeds, bots = [], rotations = 'all', concurrency = 3, out, log = console.log, makeProvider, keysFile }) {
   if (configs.length < 2) throw new Error('an arena needs at least 2 players');
   if (configs.length + bots.length > 10) throw new Error('at most 10 seats per match (players + bots)');
   const providers = configs.map((c) => makeProvider(c));
@@ -144,8 +161,9 @@ async function runArena({ server, configs, suite, suiteText, seeds, bots = [], r
 
   const players = [];
   for (let i = 0; i < configs.length; i++) {
-    players.push({ label: labels[i], provider: providers[i], track: tracks[i], key: await agentKey(server, names[i]) });
+    players.push({ label: labels[i], provider: providers[i], track: tracks[i], key: await agentKey(server, names[i], keysFile) });
   }
+  await resignLeftovers({ server, players, names, log });
   const queue = todo.filter((s) => !done.has(s.id));
   log(`arena: ${labels.join(' vs ')}${bots.length ? ' (+ bots ' + bots.join(', ') + ')' : ''}; ${queue.length} of ${todo.length} matches to play, engine ${info.engine}`);
 

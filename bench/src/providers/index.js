@@ -2,10 +2,10 @@
 
 // Builds a provider from a plain config object, shared by run.js (one model)
 // and arena.js (several). Config keys mirror run.js's flags:
-//   { provider, model, effort, thinking, baseUrl, apiKeyEnv, extra }
+//   { provider, model, effort, thinking, baseUrl, apiKeyEnv, relayDir, extra }
 function makeProvider(cfg) {
   const { provider, model } = cfg;
-  if (provider === 'anthropic' || provider === 'openai') {
+  if (provider === 'anthropic' || provider === 'openai' || provider === 'relay') {
     if (!model) throw new Error(`${provider}: a model is required`);
   }
   if (provider === 'anthropic') {
@@ -14,8 +14,9 @@ function makeProvider(cfg) {
   if (provider === 'openai') {
     return require('./openai').openaiProvider({ model, baseUrl: cfg.baseUrl, apiKeyEnv: cfg.apiKeyEnv, extra: cfg.extra || {} });
   }
+  if (provider === 'relay') return require('./relay').relayProvider({ model, dir: cfg.relayDir });
   if (provider === 'scripted') return require('./scripted').scriptedProvider();
-  throw new Error(`provider must be anthropic, openai or scripted (got ${JSON.stringify(provider)})`);
+  throw new Error(`provider must be anthropic, openai, relay or scripted (got ${JSON.stringify(provider)})`);
 }
 
 // "anthropic:claude-opus-5-5?effort=high&track=tools" -> config object.

@@ -17,10 +17,11 @@ Pits 2-10 models against each other in the same seeded matches.
                            anthropic:claude-sonnet-5-5?effort=medium&track=tools
                            openai:gpt-5?extra={"reasoning_effort":"high"}
                            openai:vendor/model?base-url=https://openrouter.ai/api/v1&api-key-env=OPENROUTER_API_KEY
+                           relay:my-agent?relay-dir=relay/my-agent   (an outside agent answers via files)
                            scripted                      (no-LLM baseline)
-                         options: effort, thinking, track, base-url, api-key-env, extra, name
+                         options: effort, thinking, track, base-url, api-key-env, relay-dir, extra, name
   --players <file>       JSON array of player configs instead of --player
-                         ({provider, model, effort, thinking, track, baseUrl, apiKeyEnv, extra, name})
+                         ({provider, model, effort, thinking, track, baseUrl, apiKeyEnv, relayDir, extra, name})
   --bots <list>          built-in bots added to every match, e.g. cyborg,spoiler
   --rotations all|1      all (default): play each seed once per player with seating
                          rotated, so everyone gets every start position; 1: once per seed
