@@ -1,0 +1,15 @@
+{
+  "name": "scorch-bench",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Benchmark harness: plays a fixed, seeded suite of Scorch matches with an LLM and scores the results",
+  "engines": { "node": ">=25" },
+  "scripts": {
+    "bench": "node run.js",
+    "report": "node report.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.1"
+  }
+}

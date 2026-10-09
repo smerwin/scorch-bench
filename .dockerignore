@@ -2,5 +2,6 @@ server/data
 server/node_modules
 server/test
 server/helm
+bench
 *.md
 !AGENTS.md

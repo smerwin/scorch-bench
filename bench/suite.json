@@ -1,0 +1,22 @@
+{
+  "name": "scorch-bench",
+  "version": 1,
+  "settings": {
+    "rounds": 3,
+    "turnMode": "simultaneous",
+    "gusts": 0.25,
+    "wind": 60,
+    "changingWind": false,
+    "walls": "random",
+    "terrain": "random",
+    "gravity": 1,
+    "startCash": 25000,
+    "interest": 5,
+    "armsLevel": 4,
+    "turnTimeout": 600,
+    "shopTimeout": 600
+  },
+  "seeds": [17, 4242, 90210, 31337, 8675309],
+  "duels": ["moron", "shooter", "poolshark", "tosser", "chooser", "spoiler", "cyborg"],
+  "ffa": [["poolshark", "chooser", "cyborg"]]
+}

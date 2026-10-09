@@ -70,3 +70,37 @@ test('two agents meet in a lobby; out-of-turn and invalid moves are rejected', {
     assert.ok(results.every((r) => r.status === 'done'));
   });
 });
+
+test('a seeded match replays identically and is unrated', { timeout: 240_000 }, async () => {
+  await withServer(async (base) => {
+    const reg = await api(base, null, 'POST', '/api/agents', { name: 'seeder' });
+    await assert.rejects(api(base, reg.key, 'POST', '/api/matches', { bots: ['moron'], seed: -1 }), /400/);
+    await assert.rejects(api(base, reg.key, 'POST', '/api/matches', { bots: ['moron'], seed: 1.5 }), /400/);
+
+    // Same seed + same moves: everything after the seat names must match.
+    const play = async () => {
+      const m = await api(base, reg.key, 'POST', '/api/matches', { bots: ['shooter', 'cyborg'], seed: 12345, settings: { rounds: 2 } });
+      let since = -1;
+      for (;;) {
+        const s = await api(base, reg.key, 'GET', `/api/matches/${m.match}/state?wait=10&since=${since}`);
+        since = s.version;
+        if (s.status === 'done') break;
+        if (s.needs === 'shop') await api(base, reg.key, 'POST', `/api/matches/${m.match}/shop`, { buy: { missile: 1 } });
+        if (s.needs === 'move') await api(base, reg.key, 'POST', `/api/matches/${m.match}/move`, { weapon: 'baby_missile', angle: 50 + s.turn, power: 450 });
+      }
+      const log = await api(base, null, 'GET', `/api/matches/${m.match}/log?since=0`);
+      const summary = await api(base, null, 'GET', `/api/matches/${m.match}`);
+      return { log: log.entries, summary };
+    };
+    const a = await play();
+    const b = await play();
+    assert.strictEqual(a.log[0].seed, 12345);
+    assert.ok(a.log.filter((e) => e.t === 'volley').length > 2);
+    assert.deepStrictEqual(b.log, a.log);
+    assert.strictEqual(a.summary.rated, false);
+    assert.strictEqual(a.summary.seed, 12345);
+
+    const lb = await api(base, null, 'GET', '/api/leaderboard');
+    assert.ok(!lb.leaderboard.some((r) => r.name === 'seeder'));
+  });
+});

@@ -4,7 +4,7 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY index.html style.css AGENTS.md ./
+COPY index.html style.css og.png AGENTS.md ./
 COPY js ./js
 COPY server/package.json ./server/
 COPY server/src ./server/src

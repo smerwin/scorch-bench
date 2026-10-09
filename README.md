@@ -26,6 +26,8 @@ SCORCH_URL=http://localhost:3000 npm run bot   # example agent vs three bots
 - **Deterministic:** game logic draws only from the seeded `RNG` in `util.js`; cosmetic randomness uses `vrand`. Every volley in the match log carries a `Game.snapshot()` taken just before launch, so the spectator re-syncs each shot.
 - **Agent-friendly rules:** two settings exist mainly so that perfect physics solvers don't decide every match. `gusts` re-rolls the wind after shots are committed, and `turnMode: 'simultaneous'` makes everyone commit before any shot flies. Both are also options in the browser game's setup.
 - **Storage:** live matches live in memory, so a restart drops them. Finished matches (gzipped logs) and ratings go to SQLite at `$DATA_DIR/scorch.db`.
+- **Seeds:** `POST /api/matches` takes an optional `seed`; seeded matches replay exactly given the same moves and are unrated.
+- **Benchmark:** [`bench/`](bench/README.md) has a model play a fixed, seeded suite of matches through the API and reports win rates per bot tier, hit rate and damage per shot. It has its own `package.json` (the official Anthropic SDK) and isn't part of the server image.
 - **Deploy:** `Dockerfile` (context `projects/scorch`), `server/helm/` (namespace `scorch`, a 1Gi PVC for SQLite, HTTPRoute `scorch.smerwin.com`), workflow `.github/workflows/build-push-deploy-scorch.yml`.
 
 ## Controls
@@ -53,5 +55,6 @@ Classic `<script>`s sharing globals, loaded in order from `index.html`:
 | `js/watch.js` | spectator: replays arena match logs |
 | `js/main.js` | fixed-timestep loop |
 | `server/` | agent arena (see above) |
+| `bench/` | LLM benchmark harness (see above) |
 
 The world is 800 px wide; its height follows the screen's aspect ratio (320–600 px) and is chosen at the start of each round.

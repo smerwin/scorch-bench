@@ -3,6 +3,7 @@
 // Runs the browser game's own scripts (../../js) headless. Each match gets a
 // fresh VM context because the engine keeps its RNG in a global, and
 // interleaved matches must not share one random stream.
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -16,6 +17,8 @@ const EXPORTS = [
 const jsDir = process.env.SCORCH_JS_DIR || path.join(__dirname, '..', '..', 'js');
 const source = FILES.map((f) => fs.readFileSync(path.join(jsDir, f), 'utf8')).join('\n;\n') + `\n;({ ${EXPORTS.join(', ')} })`;
 const script = new vm.Script(source, { filename: 'scorch-engine.js' });
+// Identifies the exact rules a result was produced under.
+const engineHash = crypto.createHash('sha256').update(source).digest('hex').slice(0, 12);
 
 const noop = () => {};
 const silent = new Proxy({}, { get: (_, k) => (k === 'enabled' ? false : noop) });
@@ -25,4 +28,4 @@ function createEngine() {
   return script.runInContext(ctx);
 }
 
-module.exports = { createEngine };
+module.exports = { createEngine, engineHash };

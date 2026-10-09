@@ -54,6 +54,9 @@ class Match {
     this.E = createEngine();
     this.settings = sanitizeSettings(this.E, settings);
     this.seed = seed === undefined ? crypto.randomBytes(4).readUInt32LE() : seed >>> 0;
+    // A chosen seed makes the bots and terrain predictable, so it could be
+    // replayed offline for a guaranteed win; those matches don't move Elo.
+    this.rated = seed === undefined;
     this.createdAt = Date.now();
     this.status = 'lobby'; // lobby -> live -> done | expired
     this.stage = null; // shop | play
@@ -204,7 +207,7 @@ class Match {
       seen.add(agentId);
     });
     try {
-      this.store.applyResult(ranked);
+      if (this.rated) this.store.applyResult(ranked);
       this.store.saveMatch(this.id, this.createdAt, this.summary(), this.log);
     } catch (e) {
       console.error('saving match', this.id, e);
@@ -403,6 +406,8 @@ class Match {
       status: this.status,
       stage: this.stage,
       createdAt: this.createdAt,
+      seed: this.rated ? undefined : this.seed,
+      rated: this.rated,
       round: g ? g.round : 0,
       rounds: this.settings.rounds,
       settings: { turnMode: this.settings.turnMode, gusts: this.settings.gusts, wind: this.settings.wind, rounds: this.settings.rounds, startCash: this.settings.startCash, armsLevel: this.settings.armsLevel },

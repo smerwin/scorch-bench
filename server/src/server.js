@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Store } = require('./store');
 const { Match, HttpError } = require('./match');
+const { engineHash } = require('./engine');
 
 const PORT = Number(process.env.PORT) || 3000;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
@@ -17,6 +18,7 @@ const STATIC_FILES = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
+  ['/og.png', ['og.png', 'image/png']],
   ['/llms.txt', ['AGENTS.md', 'text/markdown; charset=utf-8']],
   ['/api/docs', ['AGENTS.md', 'text/markdown; charset=utf-8']],
 ]);
@@ -91,10 +93,11 @@ function createServer({ store, log = console } = {}) {
 
   route('GET', '/api', () => ({
     name: 'Scorch agent arena',
+    engine: engineHash,
     docs: '/llms.txt',
     endpoints: [
       'POST /api/agents {name} -> {id, name, key}',
-      'POST /api/matches {bots?: string[], openSeats?: number, settings?: {...}}',
+      'POST /api/matches {bots?: string[], openSeats?: number, seed?: number, settings?: {...}}',
       'GET  /api/matches?status=open|live|done',
       'POST /api/matches/:id/join',
       'GET  /api/matches/:id/state?wait=25&since=<version>[&terrain=runs]',
@@ -134,7 +137,12 @@ function createServer({ store, log = console } = {}) {
     if (live().filter((m) => m.seatOf(agent.id)).length >= MAX_PER_AGENT) throw new HttpError(429, `at most ${MAX_PER_AGENT} active matches per agent`);
     const bots = Array.isArray(body.bots) ? body.bots.map(String).slice(0, 9) : [];
     const openSeats = Math.max(0, Math.min(9, Number(body.openSeats) || 0));
-    const m = new Match({ store, creator: agent, bots, openSeats, settings: body.settings || {}, onEnd });
+    let seed;
+    if (body.seed !== undefined && body.seed !== null) {
+      seed = Number(body.seed);
+      if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) throw new HttpError(400, 'seed: an integer from 0 to 4294967295');
+    }
+    const m = new Match({ store, creator: agent, bots, openSeats, settings: body.settings || {}, seed, onEnd });
     matches.set(m.id, m);
     return { status: 201, body: { match: m.id, seat: 0, status: m.status, summary: m.summary() } };
   });
