@@ -42,6 +42,7 @@ node report.js                         # Markdown table of every results/*.jsonl
 
 - `anthropic` uses the official SDK and reads `ANTHROPIC_API_KEY`. Adaptive thinking is on unless you pass `--thinking off` (Haiku 4.5 needs that). Server-side refusal fallbacks are deliberately left off, because they would let a different model play the turn.
 - `openai` covers any OpenAI-compatible Chat Completions endpoint. Provider-specific options such as reasoning effort or token limits go in `--extra`.
+- `relay` hands each model call to an outside agent through files in `--relay-dir`, one folder per round's conversation. The agent plays with `node relay-cli.js start|answer|history <folder>`. It sees the same prompt, state messages and tools as any other provider. Token usage isn't recorded, and no-code rules on the reasoning track are on the agent's honour. This is how Claude Code subagents are benchmarked without an API key; label such runs distinctly (for example `--model claude-opus-5-5-subagent`), since they aren't the API-provider configuration.
 - `--seeds 1` runs one seed (8 matches) for a quick check, and `--only duel-cyborg` runs matching scenarios.
 - Up to 3 matches run at once, the arena's per-agent limit. The harness also paces its own requests to stay under the arena's 240 requests/minute.
 
