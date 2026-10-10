@@ -163,6 +163,7 @@ const DEFAULT_SETTINGS = {
   speed: 1,
   turnMode: 'sequential',
   gusts: 0,
+  stalemate: 8, // full turns without damage before a round is drawn; 0 = never
 };
 
 const DEFAULT_PLAYERS = [

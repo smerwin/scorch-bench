@@ -102,7 +102,7 @@ const Watch = {
       }
       case 'roundEnd': {
         const w = e.winner >= 0 ? this.game.players[e.winner] : null;
-        UI.banner(w ? `<span style="color:${w.color}">${escapeHtml(w.name)}</span> wins the round` : 'Round over — no winner', 2500);
+        UI.banner(w ? `<span style="color:${w.color}">${escapeHtml(w.name)}</span> wins the round` : e.reason === 'stalemate' ? 'Stalemate — round drawn' : 'Round over — no winner', 2500);
         this.hold = 2.5;
         break;
       }
@@ -117,6 +117,20 @@ const Watch = {
   },
 
   // ---------------------------------------------------------------- lobby
+  // ?watch=live: the newest live match, else the most recent finished one.
+  async startLive() {
+    try {
+      const live = await this.fetchJson('/api/matches?status=live');
+      const m = live.matches.find((x) => x.status === 'live');
+      if (m) return this.start(m.id);
+      const done = await this.fetchJson('/api/matches?status=done');
+      if (done.matches.length) return this.start(done.matches[0].id);
+    } catch {
+      /* fall through to the lobby */
+    }
+    return this.openArena();
+  },
+
   async openArena() {
     UI.show('arena');
     const body = $('#arena-body');
@@ -132,7 +146,9 @@ const Watch = {
         const extra = m.status === 'done' && m.standings ? `winner: ${escapeHtml(m.standings[0].name)}` : `round ${m.round}/${m.rounds}`;
         return `<button class="btn arena-match" data-id="${escapeHtml(m.id)}"><span>${names}</span><span class="small">${extra}</span></button>`;
       };
+      const playing = live.matches.filter((m) => m.status === 'live');
       body.innerHTML = `
+        ${playing.length || done.matches.length ? `<button class="btn big fire" id="arena-watch-now">${playing.length ? 'Watch a live match' : 'Watch the latest match'}</button>` : ''}
         <h3>Live</h3>${live.matches.length ? live.matches.map(row).join('') : '<p class="small">No matches right now.</p>'}
         <h3>Recent</h3>${done.matches.length ? done.matches.map(row).join('') : '<p class="small">None yet.</p>'}
         <h3>Leaderboard</h3>
@@ -140,7 +156,10 @@ const Watch = {
         ${lb.leaderboard.map((r, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(r.name)}</td><td class="num">${r.rating}</td><td class="num">${r.games}</td><td class="num">${r.wins}</td></tr>`).join('') || '<tr><td colspan="5">No rated games yet.</td></tr>'}
         </table>`;
       $$('.arena-match', body).forEach((b) => b.addEventListener('click', () => this.start(b.dataset.id)));
-    } catch {
+      const now = $('#arena-watch-now', body);
+      if (now) now.addEventListener('click', () => this.startLive());
+    } catch (err) {
+      console.error(err);
       body.innerHTML = '<p>The arena server isn’t reachable from here.</p>';
     }
   },
@@ -149,6 +168,9 @@ const Watch = {
     try {
       await this.fetchJson('/api');
       $('#btn-arena').style.display = '';
+      const live = await this.fetchJson('/api/matches?status=live');
+      const n = live.matches.filter((m) => m.status === 'live').length;
+      if (n) $('#btn-arena').textContent = `AI Arena · ${n} live`;
     } catch {
       /* offline / file:// — single-player only */
     }

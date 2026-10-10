@@ -53,6 +53,7 @@ class Game {
     this.flash = 0;
     this.time = 0;
     this.turnCount = 0;
+    this.lastDamageTurn = 0;
     this.current = null;
     this.aiState = null;
     this.summary = null;
@@ -106,7 +107,12 @@ class Game {
       return;
     }
     const alive = this.alive;
-    if (alive.length <= 1 || this.turnCount >= this.players.length * 30) return this.endRound();
+    if (alive.length <= 1) return this.endRound();
+    if (this.turnCount >= this.players.length * 30) return this.endRound('limit');
+    // A round nobody can win (tanks out of each other's reach) is drawn after
+    // `stalemate` full turns in which no tank or shield took any damage.
+    const stale = this.settings.stalemate;
+    if (stale > 0 && this.turnCount - this.lastDamageTurn >= stale * alive.length) return this.endRound('stalemate');
     if (this.hooks.beforeTurn) this.hooks.beforeTurn();
     if (this.settings.changingWind && this.maxWind && this.turnCount > 0) {
       this.wind = clamp(this.wind + Math.round(gauss() * this.maxWind * 0.15), -this.maxWind, this.maxWind);
@@ -214,6 +220,7 @@ class Game {
       wind: this.wind,
       maxWind: this.maxWind,
       turnCount: this.turnCount,
+      lastDamageTurn: this.lastDamageTurn,
       turnIdx: this.turnIdx,
       order: this.order.map(idx),
       rng: RNG.state,
@@ -246,6 +253,7 @@ class Game {
     this.wind = snap.wind;
     this.maxWind = snap.maxWind;
     this.turnCount = snap.turnCount;
+    this.lastDamageTurn = snap.lastDamageTurn || 0;
     this.turnIdx = snap.turnIdx;
     const byIdx = (i) => (i >= 0 ? this.players[i] : null);
     for (const q of snap.players) {
@@ -283,7 +291,7 @@ class Game {
     RNG.state = snap.rng;
   }
 
-  endRound() {
+  endRound(reason = null) {
     if (this.phase === 'over') return;
     this.phase = 'over';
     const alive = this.alive;
@@ -300,7 +308,7 @@ class Game {
       p.cash += interest;
       return { p, earned: p.roundCash, interest, kills: p.roundKills, alive: p.alive };
     });
-    this.summary = { winner, rows };
+    this.summary = { winner, rows, reason };
     if (this.hooks.onRoundEnd) this.hooks.onRoundEnd(this.summary);
   }
 
@@ -1071,6 +1079,7 @@ class Game {
     if (t.shield && !bypassShield) {
       const a = Math.min(t.shield.hp, amt);
       t.shield.hp -= a;
+      if (a > 0) this.lastDamageTurn = this.turnCount;
       amt -= a;
       if (t.shield.hp <= 0) this.breakShield(t);
     }
@@ -1078,6 +1087,7 @@ class Game {
     if (amt <= 0) return;
     amt = Math.min(amt, t.health);
     t.health -= amt;
+    this.lastDamageTurn = this.turnCount;
     if (owner && owner !== t) {
       t.lastHitBy = owner;
       owner.score += amt;

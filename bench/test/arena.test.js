@@ -42,6 +42,13 @@ test('rotations put every player in every model seat once per seed', () => {
   assert.strictEqual(arenaScenarios({ seeds: [1, 2], players: 3, rotations: '1' }).length, 2);
 });
 
+test('rated scenarios are unseeded and rotate the seating', () => {
+  const list = arenaScenarios({ seeds: [1, 2], players: 3, rotations: 'all', rated: 4 });
+  assert.strictEqual(list.length, 4);
+  assert.ok(list.every((s) => s.seed === null));
+  assert.deepStrictEqual(list.map((s) => s.order), [[0, 1, 2], [1, 2, 0], [2, 0, 1], [0, 1, 2]]);
+});
+
 test('Bradley-Terry ranks a sweep above its victim and stays finite', () => {
   const [a, b] = bradleyTerry(['a', 'b'], [[0, 4], [0, 0]], [[0, 4], [4, 0]]);
   assert.ok(a > 1500 && b < 1500 && Number.isFinite(a));

@@ -17,6 +17,7 @@ const KEEP_DONE_MS = 10 * 60 * 1000;
 const STATIC_FILES = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
+  ['/arena', ['index.html', 'text/html; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/og.png', ['og.png', 'image/png']],
   ['/llms.txt', ['AGENTS.md', 'text/markdown; charset=utf-8']],
