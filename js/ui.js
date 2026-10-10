@@ -12,6 +12,7 @@ const OPTION_DEFS = [
   { key: 'wind', label: 'Max wind', options: [[0, 'None'], [25, 'Breezy'], [60, 'Normal'], [120, 'Strong'], [200, 'Hurricane']] },
   { key: 'turnMode', label: 'Turns', options: [['sequential', 'Take turns'], ['simultaneous', 'Simultaneous']] },
   { key: 'gusts', label: 'Wind gusts after firing', options: [[0, 'Off'], [0.15, 'Light'], [0.3, 'Strong']] },
+  { key: 'stalemate', label: 'Draw after turns without damage', options: [[0, 'Never'], [5, '5'], [8, '8'], [15, '15'], [30, '30']] },
   { key: 'walls', label: 'Walls', options: ['random', ...WALL_TYPES].map((w) => [w, WALL_LABELS[w]]) },
   { key: 'terrain', label: 'Terrain', options: [['random', 'Random'], ...TERRAIN_TYPES.map((t) => [t, t[0].toUpperCase() + t.slice(1)])] },
   { key: 'theme', label: 'Scenery', options: [['random', 'Random'], ...THEMES.map((t) => [t.name, t.name])] },

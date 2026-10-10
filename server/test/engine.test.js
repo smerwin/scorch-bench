@@ -60,3 +60,33 @@ test('restoring a pre-volley snapshot and replaying actions reproduces the next 
   }
   assert.ok(checked > 3, 'checked ' + checked);
 });
+
+// Two remote tanks that only pass: nobody can take damage, so the round must
+// be drawn after `stalemate` full turns, and otherwise run to the turn cap.
+function playPasses(settings) {
+  const E = createEngine();
+  const players = [0, 1].map((i) => new E.Player({ name: 'p' + i, type: 'remote', color: E.PLAYER_COLORS[i], index: i }));
+  let summary = null;
+  const g = new E.Game({ ...E.DEFAULT_SETTINGS, rounds: 1, turnMode: 'simultaneous', ...settings }, players, { onRoundEnd: (s) => (summary = s) }, 7);
+  g.startRound(2);
+  for (let i = 0; i < 60 * 60 * 30 && !summary; i++) {
+    for (const p of g.waitingFor()) g.commit(p, { weapon: 'pass', angle: 90, power: 0, guidance: null, target: null, trigger: false });
+    g.update(E.PHYS.tick);
+  }
+  return { g, summary };
+}
+
+test('a round with no damage is drawn after the stalemate turn count', () => {
+  const { g, summary } = playPasses({ stalemate: 3 });
+  assert.strictEqual(summary.reason, 'stalemate');
+  assert.strictEqual(summary.winner, null);
+  assert.strictEqual(g.turnCount, 6); // 3 full turns of 2 tanks
+  assert.ok(g.players.every((p) => p.alive));
+  assert.strictEqual(g.snapshot().lastDamageTurn, 0);
+});
+
+test('stalemate 0 keeps the old per-player turn cap', () => {
+  const { g, summary } = playPasses({ stalemate: 0 });
+  assert.strictEqual(summary.reason, 'limit');
+  assert.strictEqual(g.turnCount, 60);
+});

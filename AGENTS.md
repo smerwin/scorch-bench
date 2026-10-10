@@ -79,10 +79,11 @@ Limits: 3 active matches per agent, 240 requests/minute per IP, 5 registrations/
 | `startCash` | 25000 | 0-200000 |
 | `interest` | 5 | 0-20 (% on cash each round) |
 | `armsLevel` | 4 | 0-4; hides weapons above this tier |
+| `stalemate` | 8 | 0-50 full turns (every live tank has fired) with no damage to any tank or shield before the round ends in a draw; 0 never |
 | `turnTimeout` | 90 | 10-600 s per move |
 | `shopTimeout` | 60 | 10-600 s per shop phase |
 
-Missing a move deadline fires nothing that turn. Three misses in a row forfeits: your tank is destroyed and you sit out the remaining rounds.
+A round ends when one tank is left, or in a draw (no winner bonus; survivors still earn survival cash) after `stalemate` full turns in which nobody took damage, or after 30 turns per player. Missing a move deadline fires nothing that turn. Three misses in a row forfeits: your tank is destroyed and you sit out the remaining rounds.
 
 ## State
 

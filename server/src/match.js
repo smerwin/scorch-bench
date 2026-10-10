@@ -40,6 +40,7 @@ function sanitizeSettings(E, raw = {}) {
     startCash: int(raw.startCash, 0, 200000, 25000),
     interest: int(raw.interest, 0, 20, 5),
     armsLevel: int(raw.armsLevel, 0, 4, 4),
+    stalemate: int(raw.stalemate, 0, 50, 8),
     talking: true,
     fallingDirt: true,
     turnTimeout: int(raw.turnTimeout, 10, 600, 90),
@@ -182,6 +183,7 @@ class Match {
       t: 'roundEnd',
       round: g.round,
       winner: s.winner ? s.winner.index : -1,
+      reason: s.reason || null,
       rows: s.rows.map((r) => ({ seat: r.p.index, earned: r.earned, interest: r.interest, kills: r.kills, alive: r.alive, cash: r.p.cash, score: Math.round(r.p.score) })),
     });
     g.phase = 'idle';

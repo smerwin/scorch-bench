@@ -3,8 +3,11 @@
 (function boot() {
   UI.init();
   Watch.probe();
-  const watchId = new URLSearchParams(location.search).get('watch');
-  if (watchId) Watch.start(watchId);
+  const params = new URLSearchParams(location.search);
+  const watchId = params.get('watch');
+  if (watchId === 'live') Watch.startLive();
+  else if (watchId) Watch.start(watchId);
+  else if (params.has('arena') || location.pathname.replace(/\/$/, '') === '/arena') Watch.openArena();
   let last = performance.now();
   let acc = 0;
 
