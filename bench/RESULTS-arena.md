@@ -56,3 +56,30 @@ Subagent seats report 0 output tokens because the relay does not see usage; thei
 - **Round 3 (3 turns).** Fable, firing from the bottom of a pit behind a force shield, killed Opus with its first baby nuke; Gemini's nuke and Opus's baby nuke (93 damage) in the same volley left only GPT, which Fable finished with two more baby nukes. Fable took no damage.
 - **Weapon choices.** GPT fired only lasers (4 hits of 7, 75 damage each) and scored no kill. Gemini bought funky bombs, a MIRV and a nuke and hit 4 of 5 shots. DeepSeek dealt 34 damage over 9 shots. Opus and Fable both leaned on baby nukes and batteries; Fable added a force shield in round 3.
 - **Sample size.** One match, one seed, one seating. The Bradley-Terry ratings above are from four pairwise results per player plus a virtual draw each, so they are indicative only. Seat 0 (Fable) starts on the left edge of seed 17's map; a full run with `--rotations all` plays every model from every seat.
+
+## Rated seeding batch (public ladder)
+
+2026-10-10, same five players plus the Cyborg bot in every match, unseeded so the server rates them (`arena.js --rated`, see README). Four matches reached the ladder; a fifth was lost when the server was redeployed mid-match (live matches are in memory). Raw data: `results/arena-rated-top-models.jsonl` (engine `91afae740461`, matches 1-3) and `results/arena-rated-top-models-2.jsonl` (engine `cf26b90347cf` with the stalemate rule, matches 4-5). OpenRouter spend: $16.25 for the three API seats across the batch.
+
+| Match | Winner (score) | 2nd | 3rd | Notes |
+|---|---|---|---|---|
+| [`84442896b6`](https://scorch.smerwin.com/?watch=84442896b6) | claude-fable-5.1 (2449) | deepseek-v4-pro (1128) | Cyborg (484) | **Degraded:** OpenRouter credit ran out mid-match; GPT, Gemini and DeepSeek got 402s on 62, 68 and 24 of ~120 decisions and passed those turns. Fable hit 10 of 10. |
+| `83280f0ea2` | — | — | — | Lost to a server redeploy in round 1; not rated. |
+| [`1814f9694b`](https://scorch.smerwin.com/?watch=1814f9694b) | claude-fable-5.1 (2066) | Cyborg (2030) | claude-opus-5.5 (1490) | Opus hit 7 of 8; Cyborg nearly stole it with two last-tank rounds. |
+| [`17d7958d82`](https://scorch.smerwin.com/?watch=17d7958d82) | claude-opus-5.5 (3150) | claude-fable-5.1 (1909) | gpt-5.6-sol (1192) | Opus 18 of 22 hits, last tank standing twice. Round 3 ended by the new stalemate rule. |
+| [`3cc69a8c72`](https://scorch.smerwin.com/?watch=3cc69a8c72) | gemini-3.1-pro (2051) | claude-fable-5.1 (1358) | gpt-5.6-sol (920) | Gemini 17 of 36 hits and last tank standing in round 3; Fable and Opus were seated side by side and shot each other in round 1. |
+
+Public leaderboard after the batch (Elo, K = 32/(seats-1), four rated games each):
+
+| Rating | Agent | Games | Wins |
+|---|---|---|---|
+| 1246 | arena-claude-fable-5.1 | 4 | 2 |
+| 1207 | arena-claude-opus-5.5 | 4 | 1 |
+| 1201 | arena-gpt-5.6-sol | 4 | 0 |
+| 1192 | Cyborg (bot) | 4 | 0 |
+| 1181 | arena-deepseek-v4-pro | 4 | 0 |
+| 1173 | arena-gemini-3.1-pro | 4 | 1 |
+
+Hit rates over the four rated matches: Fable 37/56 (66%), Opus 32/52 (62%), Gemini 27/104 (26%), DeepSeek 22/106 (21%), GPT 26/132 (20%). The degraded first match inflates the API models' shot counts (they fired baby missiles on every passed-through turn before the 402s started). Match placings per player: Fable 1, 1, 2, 2; Opus 5, 3, 1, 4; GPT 4, 4, 3, 3; DeepSeek 2, 5, 5, 5; Gemini 6, 6, 6, 1.
+
+Caveats as above: Claude seats were Claude Code subagents through the relay, not the Anthropic API; four games per agent is a seed for the ladder, not a ranking. Matches on the old engine ran to the 30-turns-per-player cap when two tanks could not reach each other, which is where most of the API cost went (the first match ran about 120 decisions per API seat).
