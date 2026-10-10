@@ -47,10 +47,17 @@ function agentNames(labels) {
   });
 }
 
-function arenaScenarios({ seeds, players, rotations }) {
+// Rated: `rated` unseeded matches instead of the suite's seeds. The server
+// rates them, so they count on the public leaderboard; the seating still
+// rotates so no player keeps one start position.
+function arenaScenarios({ seeds, players, rotations, rated = 0 }) {
   const n = players;
-  const rots = rotations === 'all' ? n : 1;
   const list = [];
+  if (rated) {
+    for (let i = 0; i < rated; i++) list.push({ id: `rated-${i}`, seed: null, rotation: i % n, order: Array.from({ length: n }, (_, k) => (k + i) % n) });
+    return list;
+  }
+  const rots = rotations === 'all' ? n : 1;
   for (const seed of seeds) {
     for (let r = 0; r < rots; r++) {
       // order[k] = index of the player who takes the k-th model seat.
@@ -63,7 +70,7 @@ function arenaScenarios({ seeds, players, rotations }) {
 async function playArenaMatch({ server, players, scenario, bots, settings }) {
   const order = scenario.order.map((i) => players[i]);
   const [host, ...guests] = order;
-  const created = await api(server, host.key, 'POST', '/api/matches', { bots, openSeats: guests.length, seed: scenario.seed, settings });
+  const created = await api(server, host.key, 'POST', '/api/matches', { bots, openSeats: guests.length, ...(scenario.seed == null ? {} : { seed: scenario.seed }), settings });
   const matchId = created.match;
   const seats = [{ p: host, seat: created.seat }];
   try {
@@ -118,7 +125,7 @@ async function resignLeftovers({ server, players, names, log }) {
   }
 }
 
-async function runArena({ server, configs, suite, suiteText, seeds, bots = [], rotations = 'all', concurrency = 3, out, log = console.log, makeProvider, keysFile }) {
+async function runArena({ server, configs, suite, suiteText, seeds, bots = [], rotations = 'all', rated = 0, concurrency = 3, out, log = console.log, makeProvider, keysFile }) {
   if (configs.length < 2) throw new Error('an arena needs at least 2 players');
   if (configs.length + bots.length > 10) throw new Error('at most 10 seats per match (players + bots)');
   const providers = configs.map((c) => makeProvider(c));
@@ -131,7 +138,7 @@ async function runArena({ server, configs, suite, suiteText, seeds, bots = [], r
 
   const info = await api(server, null, 'GET', '/api');
   const settings = suite.settings;
-  const todo = arenaScenarios({ seeds, players: configs.length, rotations });
+  const todo = arenaScenarios({ seeds, players: configs.length, rotations, rated });
   const meta = {
     type: 'arena-meta',
     harness: version,
@@ -140,6 +147,7 @@ async function runArena({ server, configs, suite, suiteText, seeds, bots = [], r
     server,
     bots,
     rotations,
+    rated: rated ? true : undefined,
     players: labels.map((label, i) => ({ label, track: tracks[i], ...describes[i] })),
     startedAt: new Date().toISOString(),
   };
@@ -149,7 +157,7 @@ async function runArena({ server, configs, suite, suiteText, seeds, bots = [], r
   if (fs.existsSync(out)) {
     const lines = fs.readFileSync(out, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
     const prev = lines.find((l) => l.type === 'arena-meta');
-    for (const k of ['harness', 'engine', 'players', 'bots', 'rotations']) {
+    for (const k of ['harness', 'engine', 'players', 'bots', 'rotations', 'rated']) {
       if (prev && JSON.stringify(prev[k]) !== JSON.stringify(meta[k])) throw new Error(`${out} was produced with different ${k}; use --out for a new file`);
     }
     if (prev && prev.suite.hash !== meta.suite.hash) throw new Error(`${out} was produced with a different suite; use --out for a new file`);
@@ -165,7 +173,7 @@ async function runArena({ server, configs, suite, suiteText, seeds, bots = [], r
   }
   await resignLeftovers({ server, players, names, log });
   const queue = todo.filter((s) => !done.has(s.id));
-  log(`arena: ${labels.join(' vs ')}${bots.length ? ' (+ bots ' + bots.join(', ') + ')' : ''}; ${queue.length} of ${todo.length} matches to play, engine ${info.engine}`);
+  log(`arena: ${labels.join(' vs ')}${bots.length ? ' (+ bots ' + bots.join(', ') + ')' : ''}; ${queue.length} of ${todo.length}${rated ? ' rated' : ''} matches to play, engine ${info.engine}`);
 
   let next = 0;
   let failures = 0;
@@ -297,7 +305,7 @@ function arenaReport(file) {
   }
   const notes = [
     '',
-    `Engine ${meta.engine}; suite ${meta.suite.name} v${meta.suite.version} ${meta.suite.hash}; seating rotations: ${meta.rotations}${meta.bots.length ? `; bots in every match: ${meta.bots.join(', ')}` : ''}.`,
+    `Engine ${meta.engine}; suite ${meta.suite.name} v${meta.suite.version} ${meta.suite.hash}; ${meta.rated ? 'rated (unseeded) matches, seating rotated' : `seating rotations: ${meta.rotations}`}${meta.bots.length ? `; bots in every match: ${meta.bots.join(', ')}` : ''}.`,
     'Rating: Bradley-Terry over every pairwise result, Elo scale (1500 = average), one virtual draw per pair.',
   ];
   if (unclean) notes.push(`${unclean} unclean match result(s) not counted; rerun the same command to replay them.`);

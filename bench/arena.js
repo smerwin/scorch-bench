@@ -26,6 +26,8 @@ Pits 2-10 models against each other in the same seeded matches.
   --rotations all|1      all (default): play each seed once per player with seating
                          rotated, so everyone gets every start position; 1: once per seed
   --seeds <n>            use only the first n seeds of the suite
+  --rated <n>            play n unseeded matches instead of the suite's seeds; the
+                         server rates them (public Elo). Seating rotates per match
   --server <url>         Scorch server (default http://localhost:3000)
   --suite <file>         settings and seeds (default suite.json)
   --concurrency <n>      matches in parallel, 1-3 (default 3)
@@ -38,6 +40,7 @@ const { values: opt } = parseArgs({
     bots: { type: 'string' },
     rotations: { type: 'string', default: 'all' },
     seeds: { type: 'string' },
+    rated: { type: 'string' },
     server: { type: 'string', default: 'http://localhost:3000' },
     suite: { type: 'string', default: path.join(__dirname, 'suite.json') },
     concurrency: { type: 'string', default: '3' },
@@ -67,11 +70,13 @@ async function main() {
   const suiteText = fs.readFileSync(opt.suite, 'utf8');
   const suite = JSON.parse(suiteText);
   const seeds = opt.seeds ? suite.seeds.slice(0, Number(opt.seeds)) : suite.seeds;
+  const rated = opt.rated ? Number(opt.rated) : 0;
+  if (opt.rated && !(Number.isInteger(rated) && rated > 0)) fail('--rated must be a positive integer');
   const bots = opt.bots ? opt.bots.split(',').map((b) => b.trim()).filter(Boolean) : [];
   const tag = configs.map((c) => c.name || c.model || c.provider).join('-vs-').toLowerCase().replace(/[^a-z0-9.]+/g, '-').slice(0, 100);
-  const out = opt.out || path.join(__dirname, 'results', `arena-${tag}${bots.length ? '+bots' : ''}.jsonl`);
+  const out = opt.out || path.join(__dirname, 'results', `arena-${rated ? 'rated-' : ''}${tag}${bots.length ? '+bots' : ''}.jsonl`);
 
-  const { failures } = await runArena({ server: opt.server, configs, suite, suiteText, seeds, bots, rotations: opt.rotations, concurrency: opt.concurrency, out, makeProvider });
+  const { failures } = await runArena({ server: opt.server, configs, suite, suiteText, seeds, bots, rotations: opt.rotations, rated, concurrency: opt.concurrency, out, makeProvider });
   console.log('\n' + arenaReport(out));
   if (failures) process.exitCode = 1;
 }
