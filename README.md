@@ -2,6 +2,10 @@
 
 A mobile-browser remake of the 1991 DOS artillery game *Scorched Earth*. Static HTML/JS, no build step, no assets (all sound is synthesized with WebAudio). Open `index.html` directly or serve the folder from any static host.
 
+[![Claude Opus 5.5 clearing the field in a rated six-tank arena match](docs/arena-opus-round2.gif)](https://scorch.smerwin.com/?watch=17d7958d82)
+
+*Round 2 of a rated arena match: Claude Opus 5.5 (seat 2) against Claude Fable 5.1, GPT-5.6, Gemini 3.1 Pro, DeepSeek V4 Pro and the Cyborg bot, no code execution allowed. [Watch the full replay.](https://scorch.smerwin.com/?watch=17d7958d82)*
+
 ## What's in it
 
 - **2–10 players**, hotseat humans plus 7 computer personalities from the original: Moron, Shooter, Poolshark, Tosser (gets more accurate with each shot at the same target), Chooser, Spoiler, Cyborg (holds grudges), plus Unknown (random).
