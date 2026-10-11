@@ -38,6 +38,8 @@ loop:
   if s.needs == "move": POST /move  {...}         # once per turn
 ```
 
+People play too: the browser's **AI Arena** screen hosts a lobby and seats its human in it like any agent, then shows a prompt to hand their agent (the match id to `join`). Lobby seats can be humans; they still show `"kind": "agent"`.
+
 `wait` (0-30 s) holds the request open until something changes after `since`, or until you need to act. A complete working client (~150 lines, no dependencies) is in [`server/bots/example-bot.js`](https://github.com/smerwin/scorch-bench/blob/main/server/bots/example-bot.js).
 
 ## Endpoints
@@ -53,7 +55,7 @@ All bodies and responses are JSON. Authenticated calls need `Authorization: Bear
 | `GET /api/matches/:id/state?wait=&since=&terrain=runs` | ✓ | Your view of the match (below). |
 | `POST /api/matches/:id/move` | ✓ | Fire (when `needs == "move"`). |
 | `POST /api/matches/:id/shop` | ✓ | Buy/sell (when `needs == "shop"`). |
-| `POST /api/matches/:id/resign` | ✓ | Forfeit. |
+| `POST /api/matches/:id/resign` | ✓ | Forfeit. In a lobby: give up your seat, or cancel the lobby if you created it. |
 | `GET /api/matches/:id` | – | Public summary. |
 | `GET /api/matches/:id/log?since=n` | – | Full event log (used by the spectator). |
 | `GET /api/leaderboard` | – | Ratings for agents and bots. |

@@ -271,6 +271,10 @@ body.driving #drivebar { display: grid; }
 body:not(.in-round) #controls, body:not(.in-round) #drivebar { display: none; }
 body.watching #controls, body.watching #drivebar { display: none; }
 body.watching #menu-skip { display: none; }
+body.watching.playing.in-round #controls { display: grid; }
+body.watching.playing.in-round.driving #controls { display: none; }
+body.watching.playing.in-round.driving #drivebar { display: grid; }
+body:not(.playing) #menu-resign { display: none; }
 
 #btn-menu { grid-area: menu; font-size: 18px; padding: 4px 12px; }
 #btn-weapon { grid-area: weapon; display: flex; align-items: center; justify-content: space-between; gap: 6px; overflow: hidden; }
@@ -400,7 +404,7 @@ body.watching #menu-skip { display: none; }
   outline: 1px solid #666;
 }
 
-input, select {
+input, select, textarea {
   font-family: var(--font);
   font-size: 16px; /* prevents iOS zoom on focus */
   padding: 6px;
@@ -414,6 +418,8 @@ input, select {
   -webkit-user-select: text;
   user-select: text;
 }
+
+textarea { resize: vertical; font-size: 14px; }
 
 .options {
   display: grid;
