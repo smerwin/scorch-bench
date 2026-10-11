@@ -71,6 +71,22 @@ test('two agents meet in a lobby; out-of-turn and invalid moves are rejected', {
   });
 });
 
+test('resigning a lobby gives up the seat, or cancels it for the host', async () => {
+  await withServer(async (base) => {
+    const a = await api(base, null, 'POST', '/api/agents', { name: 'host' });
+    const b = await api(base, null, 'POST', '/api/agents', { name: 'guest' });
+    const m = await api(base, a.key, 'POST', '/api/matches', { openSeats: 2 });
+    await api(base, b.key, 'POST', `/api/matches/${m.match}/join`);
+    assert.deepStrictEqual(await api(base, b.key, 'POST', `/api/matches/${m.match}/resign`), { left: true, status: 'lobby' });
+    let s = await api(base, a.key, 'GET', `/api/matches/${m.match}/state`);
+    assert.strictEqual(s.openSeats, 2);
+    await api(base, b.key, 'POST', `/api/matches/${m.match}/join`);
+    assert.deepStrictEqual(await api(base, a.key, 'POST', `/api/matches/${m.match}/resign`), { left: true, status: 'expired' });
+    s = await api(base, b.key, 'GET', `/api/matches/${m.match}/state`);
+    assert.strictEqual(s.status, 'expired');
+  });
+});
+
 test('a seeded match replays identically and is unrated', { timeout: 240_000 }, async () => {
   await withServer(async (base) => {
     const reg = await api(base, null, 'POST', '/api/agents', { name: 'seeder' });

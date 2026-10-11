@@ -101,6 +101,16 @@ class Match {
     return seat;
   }
 
+  // Before the start: the host cancels the lobby; anyone else gives up their seat.
+  leave(seat) {
+    if (this.status !== 'lobby') throw new HttpError(409, 'match already started');
+    if (seat.index === 0) return this.expire();
+    seat.kind = 'open';
+    delete seat.agentId;
+    delete seat.name;
+    this.bump();
+  }
+
   // ------------------------------------------------------------- lifecycle
   start() {
     const E = this.E;
@@ -228,6 +238,7 @@ class Match {
   }
 
   standings() {
+    if (!this.players) return []; // a lobby that expired before starting
     return this.players
       .map((p) => ({ seat: p.index, name: p.name, score: Math.round(p.score), wins: p.wins, kills: p.kills, cash: p.cash, forfeit: !!p.forfeit }))
       .sort((a, b) => b.score - a.score);

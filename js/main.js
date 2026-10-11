@@ -7,6 +7,7 @@
   const watchId = params.get('watch');
   if (watchId === 'live') Watch.startLive();
   else if (watchId) Watch.start(watchId);
+  else if (params.get('play')) Watch.resume(params.get('play'));
   else if (params.has('arena') || location.pathname.replace(/\/$/, '') === '/arena') Watch.openArena();
   let last = performance.now();
   let acc = 0;

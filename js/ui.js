@@ -398,6 +398,7 @@ const UI = {
         <div class="btns"><button class="btn sell"${owned ? '' : ' disabled'}>Sell</button><button class="btn buy"${p.cash >= t.price ? '' : ' disabled'}>Buy</button></div>`;
       $('.buy', row).addEventListener('click', () => {
         if (p.cash < t.price) return Sound.denied();
+        if (Watch.play) return Watch.trade(t, 'buy');
         p.cash -= t.price;
         p.add(t.id, t.qty);
         Sound.buy();
@@ -406,6 +407,7 @@ const UI = {
       $('.sell', row).addEventListener('click', () => {
         const n = Math.min(p.count(t.id), t.qty);
         if (!n) return;
+        if (Watch.play) return Watch.trade(t, 'sell');
         p.inventory[t.id] -= n;
         p.cash += Math.floor((t.price / t.qty) * n * ECON.sellRate);
         Sound.click();
@@ -480,10 +482,10 @@ const UI = {
       const label = `${it.name} ×${n}`;
       switch (it.kind) {
         case 'shield':
-          row(label, it.info, [['Raise', () => g.useItem(p, it.id), { disabled: p.shield && p.shield.id === it.id && p.shield.hp >= it.hp }]]);
+          row(label, it.info, [['Raise', () => this.useItem(p, it.id), { disabled: p.shield && p.shield.id === it.id && p.shield.hp >= it.hp }]]);
           break;
         case 'battery':
-          row(label, `Health ${p.health}/100`, [['Use', () => g.useItem(p, it.id), { disabled: p.health >= 100 }]]);
+          row(label, `Health ${p.health}/100`, [['Use', () => this.useItem(p, it.id), { disabled: p.health >= 100 }]]);
           break;
         case 'parachute':
           row(label, it.info, [[p.useChutes ? 'Auto: ON' : 'Auto: OFF', () => (p.useChutes = !p.useChutes), { on: p.useChutes }]]);
@@ -508,6 +510,10 @@ const UI = {
         document.body.classList.add('driving');
       }]]);
     }
+  },
+
+  useItem(p, id) {
+    if (this.game.useItem(p, id)) Watch.usedItem(id);
   },
 
   // ------------------------------------------------------------ speech
@@ -556,7 +562,7 @@ const UI = {
   updateHud() {
     const g = this.game;
     if (!g || !g.terrain) return;
-    const p = g.current || g.players[0];
+    const p = g.current || (Watch.play && g.players[Watch.play.seat]) || g.players[0];
     const now = performance.now();
 
     this.set('pdot', $('#hud-player .dot').style, 'background', p.color);
@@ -573,7 +579,7 @@ const UI = {
     const arrows = w === 0 ? '' : '▸'.repeat(clamp(Math.ceil(Math.abs(w) / 35), 1, 4));
     const windTxt = w === 0 ? 'No wind' : w < 0 ? `${arrows.replace(/▸/g, '◂')} ${Math.abs(w)}` : `${Math.abs(w)} ${arrows}`;
     this.set('wind', $('#hud-wind'), 'textContent', 'Wind ' + windTxt + (g.settings.gusts && w !== 0 ? ' ~' : g.settings.gusts ? ' (gusty)' : ''));
-    this.set('round', $('#hud-round'), 'textContent', `R${g.round}/${g.settings.rounds} · ${WALL_LABELS[g.walls]}`);
+    this.set('round', $('#hud-round'), 'textContent', `R${g.round}/${g.settings.rounds} · ${WALL_LABELS[g.walls]}${Watch.statusText()}`);
 
     const can = g.canAct() && !this.paused;
     const wpn = WEAPON[p.weapon] || WEAPON.baby_missile;
@@ -608,6 +614,12 @@ const UI = {
         return true;
       });
     }
+  },
+
+  // Until the HUD first runs (a round is on screen), keep the controls off.
+  lockControls() {
+    this.cache.can = false;
+    $$('#controls .btn, #drivebar .btn').forEach((b) => (b.disabled = b.id !== 'btn-menu'));
   },
 
   // ------------------------------------------------------------ input
@@ -671,6 +683,7 @@ const UI = {
   fire() {
     const g = this.game;
     if (!g || !g.canAct() || this.paused) return;
+    if (Watch.play) return Watch.fire();
     g.fire();
   },
 
@@ -788,7 +801,10 @@ const UI = {
     $('#btn-quick').addEventListener('click', () => this.quickBattle());
     $('#btn-howto').addEventListener('click', () => this.openModal('help'));
     $('#btn-arena').addEventListener('click', () => Watch.openArena());
-    $('#arena-back').addEventListener('click', () => this.show('title'));
+    $('#arena-back').addEventListener('click', () => {
+      Watch.lobbyId = null;
+      this.show('title');
+    });
     $('#add-player').addEventListener('click', () => this.addPlayer());
     $('#setup-back').addEventListener('click', () => this.show('title'));
     $('#setup-start').addEventListener('click', () => this.startFromSetup());
@@ -837,6 +853,7 @@ const UI = {
       const g = this.game;
       if (g && g.phase !== 'over') g.forceEndRound();
     });
+    $('#menu-resign').addEventListener('click', () => Watch.resign());
     $('#menu-quit').addEventListener('click', () => this.quit());
     $('#rotate-hint button').addEventListener('click', () => {
       this.rotateDismissed = true;

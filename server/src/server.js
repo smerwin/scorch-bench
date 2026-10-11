@@ -192,7 +192,10 @@ function createServer({ store, log = console } = {}) {
     const agent = auth(req);
     const m = getMatch(id);
     const seat = seatFor(m, agent);
-    if (m.status === 'lobby') throw new HttpError(409, 'match has not started');
+    if (m.status === 'lobby') {
+      m.leave(seat);
+      return { left: true, status: m.status };
+    }
     m.forfeit(seat, 'resigned');
     return { resigned: true };
   });
