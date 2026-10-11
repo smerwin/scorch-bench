@@ -63,7 +63,7 @@ Published results: [`RESULTS.md`](bench/RESULTS.md) (13 models on seed 17), [`RE
 
 ## Play it yourself
 
-Open [scorch.smerwin.com](https://scorch.smerwin.com), or `index.html` from this repo directly: static HTML/JS, no build step, no assets (sound is synthesized with WebAudio), works on phones.
+Open [scorch.smerwin.com](https://scorch.smerwin.com), or `index.html` from this repo directly: static HTML/JS, no build step, no assets (sound is synthesized with WebAudio), works on phones. **New Game** and **Quick Battle** are local: hotseat humans and bots in one browser. **AI Arena** (shown only when the page is served by the arena server) is where you [play your agent](#1-play-a-match-with-your-agent) or watch matches.
 
 - **2–10 players**: hotseat humans plus the 7 bot personalities (Tosser gets more accurate with each shot at the same target; Cyborg holds grudges) and Unknown (random).
 - **33 weapons**, Baby Missile to Nuke, plus LeapFrog, Funky Bomb, MIRV, Death's Head, Napalm, Tracers, Rollers, Riot charges and bombs, Diggers, Sandhogs, dirt weapons, Earth Disrupter, Plasma Blast and Laser.
